@@ -1,0 +1,224 @@
+
+--UTF-8 encoding and decoding for LuaJIT
+--Written by Cosmin Apreutesei. Public Domain.
+
+if not ... then require'utf8_test'; return end
+
+local ffi = require'ffi'
+local bit = require'bit'
+local band, shl, shr = bit.band, bit.lshift, bit.rshift
+local utf8 = {}
+
+local function tobuf(s, len)
+	if type(s) == 'string' then
+		return s, ffi.cast('const uint8_t*', s), #s
+	else
+		return nil, s, len
+	end
+end
+
+-- byte 1     byte 2      byte 3     byte 4
+--------------------------------------------
+-- 00 - 7F
+-- C2 - DF    80 - BF
+-- E0         A0 - BF     80 - BF
+-- E1 - EC    80 - BF     80 - BF
+-- ED         80 - 9F     80 - BF
+-- EE - EF    80 - BF     80 - BF
+-- F0         90 - BF     80 - BF    80 - BF
+-- F1 - F3    80 - BF     80 - BF    80 - BF
+-- F4         80 - 8F     80 - BF    80 - BF
+
+function utf8.next(buf, len, i)
+	if i >= len then
+		return nil --EOS
+	end
+	local c1 = buf[i]
+	i = i + 1
+	if c1 <= 0x7F then
+		return i, c1 --ASCII
+	elseif c1 < 0xC2 then
+		--invalid
+	elseif c1 <= 0xDF then --2-byte
+		if i < len then
+			local c2 = buf[i]
+			if c2 >= 0x80 and c2 <= 0xBF then
+				return i + 1,
+				      shl(band(c1, 0x1F), 6)
+				        + band(c2, 0x3F)
+			end
+		end
+	elseif c1 <= 0xEF then --3-byte
+		if i < len + 1 then
+			local c2, c3 = buf[i], buf[i+1]
+			if not (
+				   c2 < 0x80 or c2 > 0xBF
+				or c3 < 0x80 or c3 > 0xBF
+				or (c1 == 0xE0 and c2 < 0xA0)
+				or (c1 == 0xED and c2 > 0x9F)
+			) then
+				return i + 2,
+				      shl(band(c1, 0x0F), 12)
+				    + shl(band(c2, 0x3F), 6)
+				        + band(c3, 0x3F)
+			end
+		end
+	elseif c1 <= 0xF4 then --4-byte
+		if i < len + 2 then
+			local c2, c3, c4 = buf[i], buf[i+1], buf[i+2]
+			if not (
+				   c2 < 0x80 or c2 > 0xBF
+				or c3 < 0x80 or c3 > 0xBF
+				or c3 < 0x80 or c3 > 0xBF
+				or c4 < 0x80 or c4 > 0xBF
+				or (c1 == 0xF0 and c2 < 0x90)
+				or (c1 == 0xF4 and c2 > 0x8F)
+			) then
+				return i + 3,
+				     shl(band(c1, 0x07), 18)
+				   + shl(band(c2, 0x3F), 12)
+				   + shl(band(c3, 0x3F), 6)
+				       + band(c4, 0x3F)
+			end
+		end
+	end
+	return i --invalid
+end
+
+function utf8.prev(buf, len, i)
+	if i <= 0 then
+		return nil
+	end
+	local j = i
+	while i > 0 do --go back to a previous possible start byte
+		i = i - 1
+		local c = buf[i]
+		if c < 0x80 or c > 0xBF or i == j-4 then
+			break
+		end
+	end
+	while true do --go forward to the real previous character
+		local i1, c = utf8.next(buf, len, i)
+		i1 = i1 or len
+		if i1 == j then
+			return i, c
+		end
+		i = i1
+		assert(i < j)
+	end
+	return i, c
+end
+
+function utf8.chars(s, i)
+	local _, buf, len = tobuf(s)
+	i = i and i-1 or 0
+	return function()
+		local c
+		i, c = utf8.next(buf, len, i)
+		return i+1, c
+	end
+end
+
+function utf8.decode(buf, len, out, outlen, repl)
+	local _, buf, len = tobuf(buf, len)
+	local j, p, i = 0, 0, 0
+	while true do
+		local i1, c = utf8.next(buf, len, i)
+		if not i1 then
+			break
+		end
+		local c = c or repl
+		if c then
+			if c == 'iso-8859-1' then
+				c = buf[i] --interpret as iso-8859-1 like browsers do
+			end
+			if out then
+				if j >= outlen then
+					return nil, 'buffer overflow'
+				end
+				out[j] = c
+			end
+			j = j + 1
+		else
+			p = p + 1
+		end
+		i = i1
+	end
+	return j, p
+end
+
+local function char_byte_count(c, invalid_size)
+	if c < 0 or c > 0x10FFFF or (c >= 0xD800 and c <= 0xDFFF) then
+		return invalid_size
+	elseif c <= 0x7F then
+		return 1
+	elseif c <= 0x7FF then
+		return 2
+	elseif c <= 0xFFFF then
+		return 3
+	else
+		return 4
+	end
+end
+
+local function byte_count(buf, len, repl)
+	local n = 0
+	local invalid_size = repl and char_byte_count(repl, 0) or 0
+	for i = 0, len-1 do
+		n = n + char_byte_count(buf[i], invalid_size)
+	end
+	return n
+end
+
+local function encode_char(c, repl)
+	local n, b1, b2, b3, b4 = 0
+	if c >= 0xD800 and c <= 0xDFFF then --surrogate pair
+		if repl then
+			return encode_char(repl)
+		end
+	elseif c <= 0x7F then
+		b1 = c
+		n = 1
+	elseif c <= 0x7FF then
+		b2 = 0x80 + band(c, 0x3F); c = shr(c, 6)
+		b1 = 0xC0 + c
+		n = 2
+	elseif c <= 0xFFFF then
+		b3 = 0x80 + band(c, 0x3F); c = shr(c, 6)
+		b2 = 0x80 + band(c, 0x3F); c = shr(c, 6)
+		b1 = 0xE0 + c
+		n = 3
+	elseif c <= 0x10FFFF then
+		b4 = 0x80 + band(c, 0x3F); c = shr(c, 6)
+		b3 = 0x80 + band(c, 0x3F); c = shr(c, 6)
+		b2 = 0x80 + band(c, 0x3F); c = shr(c, 6)
+		b1 = 0xF0 + c
+		n = 4
+	elseif repl then
+		return enncode_char(repl)
+	end
+	return n, b1, b2, b3, b4
+end
+
+function utf8.encode(buf, len, out, outlen, repl)
+	local _, buf, len = tobuf(buf, len)
+	if not out then --compute outlen
+		return byte_count(buf, len, repl)
+	end
+	local j = 0
+	for i = 0, len-1 do
+		local n, b1, b2, b3, b4 = encode_char(buf[i], repl)
+		if n > outlen then
+			return nil, 'buffer overflow'
+		end
+		if b1 then out[j  ] = b1 end
+		if b2 then out[j+1] = b2 end
+		if b3 then out[j+2] = b3 end
+		if b4 then out[j+3] = b4 end
+		outlen = outlen - n
+		j = j + n
+	end
+	return j
+end
+
+return utf8
