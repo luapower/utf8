@@ -6,24 +6,24 @@ tagline: UTF-8 encoding and decoding for LuaJIT
 
 Decode and encode UTF-8 data with control over invalid bytes.
 
----------------------------------------------------------------- --------------------------------------------
-`utf8.next(buf, len, i) -> next_i, [code], [byte]`               codepoint (or invalid byte) at index `i`
-`utf8.prev(buf, len, i) -> i, [code], [byte]`                    codepoint (or invalid byte) before index `i`
-`utf8.decode(buf, len, [out], [outlen], [repl]) -> [out, ]n, p`  decode utf8 buffer (or get output length)
-`utf8.encode(buf, len, [out], [outlen], [repl]) -> [out, ]bytes` encode utf32 buffer (or get output length)
-`utf8.chars(s[, start]) -> iter() -> next_i, [code], [byte]`     iterate codepoints in string
-`utf8.encode_chars({c1,...}, [repl] | c1,...) -> s`              encode codepoints to utf8 string
----------------------------------------------------------------- --------------------------------------------
+---------------------------------------------------------- --------------------------------------------
+`utf8.next(buf, len, i) -> ni, code, byte`                 codepoint (or invalid byte) at index `i`
+`utf8.prev(buf, len, i) -> ni, code, byte`                 codepoint (or invalid byte) before index `i`
+`utf8.decode(buf, len, out, outlen, repl) -> [out, ]n, p`  decode utf8 buffer (or get output length)
+`utf8.encode(buf, len, out, outlen, repl) -> [out, ]bytes` encode utf32 buffer (or get output length)
+`utf8.chars(s[, start]) -> iter() -> ni, code, byte`       iterate codepoints in string
+`utf8.encode_chars({c1,...}, repl | c1,...) -> s`          encode codepoints to utf8 string
+---------------------------------------------------------- --------------------------------------------
 
-### `utf8.next(buf, len, i) -> next_i, [code], [byte] | nil`
+### `utf8.next(buf, len, i) -> next_i, code, byte | nil`
 
 Return codepoint (or invalid byte) at index `i`. Return `nil` if `i >= len`.
 
-### `utf8.prev(buf, len, i) -> i, [code], [byte] | nil`
+### `utf8.prev(buf, len, i) -> i, code, byte | nil`
 
 Return codepoint (or invalid byte) before index `i`. Return `nil` if `i <= 0`.
 
-### `utf8.decode(buf, len, [out], [outlen], [repl]) -> [out, ]n, p`
+### `utf8.decode(buf, len, out, outlen, repl) -> [out, ]n, p`
 
 Decode utf8 buffer into a utf32 buffer or get output length.
 
@@ -36,7 +36,7 @@ Decode utf8 buffer into a utf32 buffer or get output length.
   characters like browsers do.
   * replaced invalid bytes are counted in `n`.
 
-### `utf8.encode(buf, len, [out], [outlen], [repl]) -> [out, ]bytes`
+### `utf8.encode(buf, len, out, outlen, repl) -> [out, ]bytes`
 
 Encode utf32 buffer into a utf8 buffer or get output length.
 
@@ -46,13 +46,13 @@ Encode utf32 buffer into a utf8 buffer or get output length.
 (surrogate pairs and codes larger than `0x10FFFF`) with.
   * if `repl` is not given, invalid codepoints are skipped.
 
-### `utf8.chars(s[, start]) -> iter() -> next_i, [code], [byte]`
+### `utf8.chars(s[, start]) -> iter() -> next_i, code, byte`
 
 Iterate all the codepoints in a string, returning the index in string where
 the _next_ codepoint is, and the codepoint (or `nil` if `start` was at the
 last codepoint or byte). Invalid bytes are returned in the second return
 value, in which case the codepoint is `nil`.
 
-### `utf8.encode_chars({c1, ...}, [repl]) -> s` <br> `utf8.encode_chars(c1, ...) -> s`
+### `utf8.encode_chars({c1, ...}, repl) -> s` <br> `utf8.encode_chars(c1, ...) -> s`
 
 Encode codepoints (given as an array or as separate args) to a utf8 string.
