@@ -27,23 +27,23 @@ Return codepoint (or invalid byte) before index `i`. Return `nil` if `i <= 0`.
 
 Decode utf8 buffer into a utf32 buffer or get output length.
 
-* if `out` is `nil` the output buffer is allocated by the function.
-* if `out` is `false` the output buffer is not allocated or returned.
-* `n, p` is the number of valid codepoints and the number of invalid bytes.
-* `repl` is an optional codepoint to replace invalid bytes with.
-  * if `repl` is not given, invalid bytes are skipped.
-  * if `repl` is `'iso-8859-1'`, invalid bytes are treated as iso-8859-1
-  characters like browsers do.
-  * replaced invalid bytes are counted in `n`.
+  * if `out` is `nil` the output buffer is allocated by the function.
+  * if `out` is `false` the output buffer is not allocated or returned.
+  * `n, p` is the number of valid codepoints and the number of invalid bytes.
+  * `repl` is an optional codepoint to replace invalid bytes with.
+    * if `repl` is not given, invalid bytes are skipped.
+    * if `repl` is `'iso-8859-1'`, invalid bytes are treated as iso-8859-1
+    characters like browsers do.
+    * replaced invalid bytes are counted in `n`.
 
 ### `utf8.encode(buf, len, out, outlen, repl) -> [out, ]bytes`
 
 Encode utf32 buffer into a utf8 buffer or get output length.
 
-* if `out` is `nil` the output buffer is allocated by the function.
-* if `out` is `false` the output buffer is not allocated or returned.
-* `repl` is an optional valid codepoint to replace invalid codepoints with.
-  * if `repl` is not given, invalid codepoints are skipped.
+  * if `out` is `nil` the output buffer is allocated by the function.
+  * if `out` is `false` the output buffer is not allocated or returned.
+  * `repl` is an optional valid codepoint to replace invalid codepoints with.
+    * if `repl` is not given, invalid codepoints are skipped.
 
 ### `utf8.chars(s[, start]) -> iter() -> next_i, code, byte`
 
