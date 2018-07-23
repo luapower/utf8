@@ -42,8 +42,7 @@ Encode utf32 buffer into a utf8 buffer or get output length.
 
 * if `out` is `nil` the output buffer is allocated by the function.
 * if `out` is `false` the output buffer is not allocated or returned.
-* `repl` is an optional valid codepoint to replace invalid codepoints
-(surrogate pairs and codes larger than `0x10FFFF`) with.
+* `repl` is an optional valid codepoint to replace invalid codepoints with.
   * if `repl` is not given, invalid codepoints are skipped.
 
 ### `utf8.chars(s[, start]) -> iter() -> next_i, code, byte`
