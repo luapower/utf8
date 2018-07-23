@@ -48,9 +48,8 @@ Encode utf32 buffer into a utf8 buffer or get output length.
 ### `utf8.chars(s[, start]) -> iter() -> next_i, code, byte`
 
 Iterate all the codepoints in a string, returning the index in string where
-the _next_ codepoint is, and the codepoint (or `nil` if `start` was at the
-last codepoint or byte). Invalid bytes are returned in the second return
-value, in which case the codepoint is `nil`.
+the _next_ codepoint is, and the codepoint. Invalid bytes are returned in
+the second return value, in which case the codepoint is `nil`.
 
 ### `utf8.encode_chars({c1, ...}, repl) -> s` <br> `utf8.encode_chars(c1, ...) -> s`
 
