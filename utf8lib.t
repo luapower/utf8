@@ -10,6 +10,8 @@
 	utf8.decode.tobuffer (s,len,out,outlen,on_reject,repl_c) -> n, i, q
 	utf8.decode.toarr    (s,len,out,outlen,on_reject,repl_c) -> n, i, q
 
+	for valid,i,c in utf8.decode.codepoints(s,len) do ... end
+
 	utf8.encode.count    (s,len,    outlen,on_reject,repl_c) -> n, i, q
 	utf8.encode.tobuffer (s,len,out,outlen,on_reject,repl_c) -> n, i, q
 	utf8.encode.toarr    (s,len,out,outlen,on_reject,repl_c) -> n, i, q
